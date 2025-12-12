@@ -12,9 +12,9 @@ export default function Index() {
   const [backgroundColor, setBackgroundColor] = useState('rgba(161, 210, 117, 0.15)');
 
   // TODO: Remove this useEffect when finished testing
-  useEffect(() => {
-    resetOnboarding();
-  }, [resetOnboarding]);
+  // useEffect(() => {
+  //   resetOnboarding();
+  // }, [resetOnboarding]);
 
   // Show loading state while checking subscription
   if (isLoading) {
