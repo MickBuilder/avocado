@@ -9,7 +9,7 @@ export interface Product {
   brand?: string;
   imageUrl?: string;
   score: number;
-  quality: 'Poor' | 'Fair' | 'Good' | 'Excellent';
+  quality: 'Avoid' | 'Limit' | 'Good' | 'Excellent';
   scannedAt: Date;
   isFavorite: boolean;
   // Open Food Facts data

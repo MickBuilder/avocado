@@ -7,8 +7,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
 import { PostHogProvider } from 'posthog-react-native';
-import { SuperwallProvider as ExpoSuperwallProvider } from 'expo-superwall';
-import { SuperwallProvider } from '@/providers/Superwall';
+import { RevenueCatProvider } from '@/providers/RevenueCat';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -20,7 +19,7 @@ const InitialLayout = () => {
   const posthogKey = process.env.EXPO_PUBLIC_POSTHOG_KEY;
 
   return (
-    <SuperwallProvider>
+    <RevenueCatProvider>
       <PostHogProvider
         apiKey={posthogKey || ''}
         options={{
@@ -44,20 +43,15 @@ const InitialLayout = () => {
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="product/[id]" options={{ presentation: 'card' }} />
+            <Stack.Screen name="paywall" options={{ presentation: 'modal', headerShown: false }} />
           </Stack>
           <PortalHost />
         </ThemeProvider>
       </PostHogProvider>
-    </SuperwallProvider>
+    </RevenueCatProvider>
   );
 };
 
 export default function RootLayout() {
-  const superwallKey = process.env.EXPO_PUBLIC_SUPERWALL_KEY;
-
-  return (
-    <ExpoSuperwallProvider apiKeys={{ ios: superwallKey || '', android: superwallKey || '' }}>
-      <InitialLayout />
-    </ExpoSuperwallProvider>
-  );
+  return <InitialLayout />;
 }

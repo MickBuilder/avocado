@@ -66,26 +66,43 @@ export function calculateScore(product: Product): number {
 }
 
 // Determine quality label
-export function getQualityLabel(score: number): 'Poor' | 'Fair' | 'Good' | 'Excellent' {
+export function getQualityLabel(score: number): 'Avoid' | 'Limit' | 'Good' | 'Excellent' {
   if (score >= 75) return 'Excellent';
   if (score >= 60) return 'Good';
-  if (score >= 40) return 'Fair';
-  return 'Poor';
+  if (score >= 40) return 'Limit';
+  return 'Avoid';
 }
 
-// Get quality color - using logo palette
-export function getQualityColor(quality: 'Poor' | 'Fair' | 'Good' | 'Excellent'): string {
+// Get quality color based on score - using new color scheme
+export function getQualityColorFromScore(score: number): string {
+  if (score >= 75) {
+    // Excellent - Dark green
+    return '#2E7D32';
+  } else if (score >= 50) {
+    // Good - Light green
+    return '#8BC34A';
+  } else if (score >= 25) {
+    // Limit/Poor - Orange
+    return '#FF9800';
+  } else {
+    // Avoid/Bad - Red
+    return '#F44336';
+  }
+}
+
+// Get quality color - using new color scheme
+export function getQualityColor(quality: 'Avoid' | 'Limit' | 'Good' | 'Excellent'): string {
   switch (quality) {
     case 'Excellent':
-      return '#97C536'; // Vibrant lime green
+      return '#2E7D32'; // Dark green
     case 'Good':
-      return '#65AE1E'; // Bright green
-    case 'Fair':
-      return '#A1D275'; // Light pastel lime green
-    case 'Poor':
-      return '#745513'; // Medium brown (warning)
+      return '#8BC34A'; // Light green
+    case 'Limit':
+      return '#FF9800'; // Orange
+    case 'Avoid':
+      return '#F44336'; // Red
     default:
-      return '#518E22'; // Medium green
+      return '#518E22'; // Medium green (fallback)
   }
 }
 

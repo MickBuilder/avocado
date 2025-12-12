@@ -8,6 +8,7 @@ import { useStore } from '@/store/store';
 import { ProductCard } from '@/components/product-card';
 import type { Product } from '@/store/store';
 import { usePostHog } from 'posthog-react-native';
+import { useRevenueCat, useSubscription } from '@/providers/RevenueCat';
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -17,6 +18,8 @@ export default function SearchScreen() {
   const [results, setResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const { addProduct } = useStore();
+  const { presentPaywall } = useRevenueCat();
+  const { isPro } = useSubscription();
 
   useEffect(() => {
     if (params.q) {
@@ -36,6 +39,21 @@ export default function SearchScreen() {
     const q = query || searchQuery;
     if (!q.trim()) {
       setResults([]);
+      return;
+    }
+
+    // Check if user has Pro subscription
+    if (!isPro) {
+      try {
+        safeHaptic.impact();
+        await presentPaywall();
+        posthog?.capture('paywall_opened_from_search_attempt');
+      } catch (error: any) {
+        if (!error.userCancelled) {
+          console.error('Paywall error:', error);
+          router.push('/paywall' as any);
+        }
+      }
       return;
     }
 
@@ -133,15 +151,21 @@ export default function SearchScreen() {
       <View className="flex-1" style={{ backgroundColor: 'rgba(161, 210, 117, 0.15)' }}>
         {/* Search Input */}
         <View className="px-4 pt-4 pb-2">
-          <View className="rounded-lg px-4 py-3 flex-row items-center" style={{ backgroundColor: '#F1F3ED' }}>
+          <View className="rounded-lg px-4 py-3 flex-row items-center" style={{ backgroundColor: '#F1F3ED', opacity: isPro ? 1 : 0.6 }}>
             <Ionicons name="search-outline" size={24} color="#518E22" />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               onSubmitEditing={() => handleSearch()}
-              placeholder="Search by name, brand, or barcode..."
+              placeholder={isPro ? "Search by name, brand, or barcode..." : "Upgrade to Pro to search"}
               className="flex-1 ml-3"
               returnKeyType="search"
+              editable={isPro}
+              onFocus={() => {
+                if (!isPro) {
+                  handleSearch();
+                }
+              }}
             />
             {searchQuery.length > 0 && (
               <Pressable onPress={() => {
@@ -152,6 +176,25 @@ export default function SearchScreen() {
               </Pressable>
             )}
           </View>
+          {!isPro && (
+            <Pressable
+              onPress={async () => {
+                try {
+                  safeHaptic.impact();
+                  await presentPaywall();
+                  posthog?.capture('paywall_opened_from_search_upgrade_prompt');
+                } catch (error: any) {
+                  if (!error.userCancelled) {
+                    console.error('Paywall error:', error);
+                    router.push('/paywall' as any);
+                  }
+                }
+              }}
+              className="mt-3 bg-brand-primary px-4 py-3 rounded-lg items-center"
+            >
+              <Text className="text-white font-semibold">Upgrade to Pro to Search</Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Results */}

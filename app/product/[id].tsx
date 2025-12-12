@@ -8,12 +8,15 @@ import { getQualityColor } from '@/lib/openfoodfacts';
 import { ScoreBadge } from '@/components/score-badge';
 import type { Product } from '@/store/store';
 import { usePostHog } from 'posthog-react-native';
+import { useRevenueCat, useSubscription } from '@/providers/RevenueCat';
 
 export default function ProductDetailsScreen() {
   const router = useRouter();
   const posthog = usePostHog();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getProduct, toggleFavorite, favorites } = useStore();
+  const { isPro } = useSubscription();
+  const { presentPaywall } = useRevenueCat();
   const [product, setProduct] = useState(getProduct(id || ''));
 
   useEffect(() => {
@@ -265,7 +268,23 @@ export default function ProductDetailsScreen() {
           ),
           headerRight: () => (
             <Pressable
-              onPress={() => {
+              onPress={async () => {
+                // If trying to add to favorites and not Pro, show paywall
+                if (!isFavorite && !isPro) {
+                  try {
+                    safeHaptic.impact();
+                    await presentPaywall();
+                    posthog?.capture('paywall_opened_from_product_favorite');
+                  } catch (error: any) {
+                    if (!error.userCancelled) {
+                      console.error('Paywall error:', error);
+                      router.push('/paywall' as any);
+                    }
+                  }
+                  return;
+                }
+
+                // Allow removing favorites or adding if Pro
                 const wasFavorite = isFavorite;
                 toggleFavorite(product.id);
                 safeHaptic.impact();

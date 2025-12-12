@@ -6,11 +6,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '@/store/store';
 import { ProductCard } from '@/components/product-card';
 import { usePostHog } from 'posthog-react-native';
+import { useRevenueCat, useSubscription } from '@/providers/RevenueCat';
 
 export default function HistoryScreen() {
   const router = useRouter();
   const posthog = usePostHog();
   const { products, favorites, getFavorites, removeProducts } = useStore();
+  const { isPro } = useSubscription();
+  const { presentCustomerCenter, presentPaywall } = useRevenueCat();
   const [filter, setFilter] = useState<'all' | 'favorites'>('all');
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -86,14 +89,56 @@ export default function HistoryScreen() {
           headerStyle: {
             backgroundColor: 'rgba(161, 210, 117, 0.20)',
           },
-          headerRight: () => (
-            <Pressable onPress={handleDeletePress} className="mr-4">
-              <Ionicons 
-                name={isSelectMode ? "close-outline" : "trash-outline"} 
-                size={24} 
-                color="#2C3F22" 
-              />
+          headerLeft: () => (
+            <Pressable
+              onPress={async () => {
+                try {
+                  safeHaptic.impact();
+                  await presentPaywall();
+                  posthog?.capture('paywall_opened_from_history_header');
+                } catch (error: any) {
+                  if (!error.userCancelled) {
+                    console.error('Paywall error:', error);
+                    router.push('/paywall' as any);
+                  }
+                }
+              }}
+              className="ml-4"
+            >
+              <Text className="text-base font-semibold" style={{ color: '#2C3F22' }}>
+                Pro
+              </Text>
             </Pressable>
+          ),
+          headerRight: () => (
+            <View className="flex-row items-center">
+              {isPro && !isSelectMode && (
+                <Pressable
+                  onPress={async () => {
+                    try {
+                      safeHaptic.impact();
+                      await presentCustomerCenter();
+                      posthog?.capture('customer_center_opened_from_history');
+                    } catch (error: any) {
+                      if (!error.userCancelled) {
+                        console.error('Customer center error:', error);
+                        Alert.alert('Error', 'Unable to open customer center');
+                      }
+                    }
+                  }}
+                  className="mr-3"
+                >
+                  <Ionicons name="person-circle-outline" size={24} color="#2C3F22" />
+                </Pressable>
+              )}
+              <Pressable onPress={handleDeletePress} className="mr-4">
+                <Ionicons 
+                  name={isSelectMode ? "close-outline" : "trash-outline"} 
+                  size={24} 
+                  color="#2C3F22" 
+                />
+              </Pressable>
+            </View>
           ),
         }}
       />
