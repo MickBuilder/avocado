@@ -1,4 +1,4 @@
-import { Text, View, Pressable } from 'react-native';
+import { Text, View } from 'react-native';
 import Animated, { FadeIn, useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useEffect, useState, useRef } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,6 +8,7 @@ import { usePostHog } from 'posthog-react-native';
 
 interface LoadingScreenProps {
   onTimeout: () => void;
+  onAnimationComplete?: () => void;
 }
 
 const safeguards = [
@@ -26,11 +27,10 @@ const statusMessages = [
   { progress: 100, message: "Almost there..." },
 ];
 
-export function LoadingScreen({ onTimeout }: LoadingScreenProps) {
+export function LoadingScreen({ onTimeout, onAnimationComplete }: LoadingScreenProps) {
   const [progress, setProgress] = useState(0);
   const [currentMessage, setCurrentMessage] = useState("Setting up your scanner...");
   const [activatedSafeguards, setActivatedSafeguards] = useState<string[]>([]);
-  const [showContinueButton, setShowContinueButton] = useState(false);
   const progressWidth = useSharedValue(0);
   const activatedSafeguardsRef = useRef<string[]>([]);
   const posthog = usePostHog();
@@ -123,9 +123,9 @@ export function LoadingScreen({ onTimeout }: LoadingScreenProps) {
           safeguards_count: activatedSafeguardsRef.current.length,
         });
         
-        // Wait a bit for final animations to complete, then show continue button
+        // Wait a bit for final animations to complete, then notify parent
         setTimeout(() => {
-          setShowContinueButton(true);
+          onAnimationComplete?.();
         }, 800);
       }
     }, interval);
@@ -194,20 +194,6 @@ export function LoadingScreen({ onTimeout }: LoadingScreenProps) {
           })}
         </View>
 
-        {/* Continue Button - only shows after all animations complete */}
-        {showContinueButton && (
-          <Animated.View entering={FadeIn.duration(400)} className="mt-8">
-            <Pressable
-              onPress={() => {
-                safeHaptic.impact();
-                onTimeout();
-              }}
-              className="bg-black px-8 py-4 rounded-xl items-center"
-            >
-              <Text className="text-white text-lg font-semibold">Continue</Text>
-            </Pressable>
-          </Animated.View>
-        )}
       </View>
     </Animated.View>
   );

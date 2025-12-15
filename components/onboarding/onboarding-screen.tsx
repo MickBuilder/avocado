@@ -27,6 +27,7 @@ interface OnboardingScreenProps {
 export function OnboardingScreen({ onBackgroundColorChange }: OnboardingScreenProps = {}) {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [isLoadingAnimationComplete, setIsLoadingAnimationComplete] = useState(false);
   const router = useRouter();
   const { completeOnboarding } = useStore();
   const posthog = usePostHog();
@@ -40,6 +41,13 @@ export function OnboardingScreen({ onBackgroundColorChange }: OnboardingScreenPr
     });
     startTimeRef.current = Date.now();
   }, []);
+
+  // Reset loading animation complete state when leaving loading screen
+  useEffect(() => {
+    if (currentStep !== ONBOARDING_STEPS.length + 2) {
+      setIsLoadingAnimationComplete(false);
+    }
+  }, [currentStep]);
 
   // Track step viewed
   useEffect(() => {
@@ -183,7 +191,7 @@ export function OnboardingScreen({ onBackgroundColorChange }: OnboardingScreenPr
     }
 
     if (currentStep === ONBOARDING_STEPS.length + 2) {
-      return <LoadingScreen onTimeout={handleContinue} />;
+      return <LoadingScreen onTimeout={handleContinue} onAnimationComplete={() => setIsLoadingAnimationComplete(true)} />;
     }
 
     if (currentStep === ONBOARDING_STEPS.length + 3) {
@@ -253,10 +261,12 @@ export function OnboardingScreen({ onBackgroundColorChange }: OnboardingScreenPr
   const isWelcomeScreen = currentStep === 0;
   const isLastStep = currentStep === TOTAL_STEPS - 1;
 
-  // Disable continue only for question steps without an answer
+  // Disable continue for question steps without an answer, or loading screen until animation completes
   const currentStepData = currentStep > 0 ? ONBOARDING_STEPS[currentStep - 1] : null;
+  const isLoadingScreen = currentStep === ONBOARDING_STEPS.length + 2;
   const isContinueDisabled =
-    currentStepData?.type === 'question' && !answers[currentStep];
+    (currentStepData?.type === 'question' && !answers[currentStep]) ||
+    (isLoadingScreen && !isLoadingAnimationComplete);
 
   // Check if current step has a green background (PledgeScreen or FeaturesScreen)
   const hasGreenBackground = currentStepData?.id === 'pledge' || currentStepData?.id === 'features';
